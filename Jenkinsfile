@@ -1,43 +1,42 @@
 pipeline {
   agent any
 
-  options {
-    timestamps()
-  }
+  options { timestamps() }
 
   environment {
     VENV_DIR = ".venv"
-    DEPLOY_DIR = "/tmp/flask-deploy"
+    DEPLOY_DIR = "C:\\temp\\flask-deploy"
+  }
+
+  triggers {
+    githubPush()
   }
 
   stages {
 
     stage('Clone Repository') {
       steps {
-        echo "Repo cloned"
-        sh 'ls -lah'
+        echo "Repo cloned by Jenkins SCM checkout"
+        bat 'dir'
       }
     }
 
     stage('Install Dependencies') {
       steps {
-        sh '''
-          set -e
-          python3 --version
-          python3 -m venv "${VENV_DIR}"
-          . "${VENV_DIR}/bin/activate"
-          pip install --upgrade pip
-          pip install -r requirements.txt  
+        bat '''
+          python --version
+          python -m venv %VENV_DIR%
+          call %VENV_DIR%\\Scripts\\activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
         '''
-        //req.txt, where our dependicies are stored
       }
     }
 
     stage('Run Unit Tests') {
       steps {
-        sh '''
-          set -e
-          . "${VENV_DIR}/bin/activate"
+        bat '''
+          call %VENV_DIR%\\Scripts\\activate
           pytest -q
         '''
       }
@@ -45,27 +44,26 @@ pipeline {
 
     stage('Build Application') {
       steps {
-        sh '''
-          set -e
-          rm -rf dist || true
-          mkdir -p dist
-          tar -czf dist/flask_app.tar.gz \
-            --exclude="${VENV_DIR}" \
-            --exclude=".git" \
-            --exclude="dist" \
-            .
-          ls -lah dist/
+        bat '''
+          if exist dist rmdir /s /q dist
+          mkdir dist
+
+          rem simple "build": copy files into dist
+          copy app.py dist\\app.py
+
+          if exist tests xcopy /E /I /Y tests dist\\tests
+          copy requirements.txt dist\\requirements.txt
+          dir dist
         '''
       }
     }
 
-    stage('Deploy') {
+    stage('Deploy (Simulated)') {
       steps {
-        sh '''
-          set -e
-          mkdir -p "${DEPLOY_DIR}"
-          cp -f dist/flask_app.tar.gz "${DEPLOY_DIR}/"
-          echo "Simulated deploy complete -> ${DEPLOY_DIR}"
+        bat '''
+          if not exist "%DEPLOY_DIR%" mkdir "%DEPLOY_DIR%"
+          xcopy /E /I /Y dist "%DEPLOY_DIR%\\dist"
+          echo Simulated deploy complete -> %DEPLOY_DIR%
         '''
       }
     }
