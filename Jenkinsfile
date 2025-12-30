@@ -58,12 +58,12 @@ pipeline {
       }
     }
 
-    stage('Deploy (Simulated)') {
+    stage('Deploy') {
       steps {
         bat '''
           if not exist "%DEPLOY_DIR%" mkdir "%DEPLOY_DIR%"
           xcopy /E /I /Y dist "%DEPLOY_DIR%\\dist"
-          echo Simulated deploy complete -> %DEPLOY_DIR%
+          echo Simulated deploy complete. Files deployed to %DEPLOY_DIR%
         '''
       }
     }
